@@ -1,2 +1,4 @@
 # PokeFusion
-Generate New Pokemons using Diffusion Models
+Generate New Pokemons using Diffusion Models  
+  
+... work in progress 📝
