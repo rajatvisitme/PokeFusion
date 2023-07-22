@@ -2,6 +2,9 @@
 ## Step: 1 - Forward process => Noise scheduler
 
 import torch.nn.functional as F
+from torchvision import transforms
+from torch.utils.data import DataLoader
+import numpy as np
 
 def linear_beta_schedule(timesteps, start=0.0001, end=0.02):
     return torch.linspace(start, end, timesteps)
@@ -42,6 +45,44 @@ sqrt_recip_alphas = torch.sqrt(1.0 / alphas)
 sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
 sqrt_one_minus_alphas_cumprod = torch.sqrt(1. - alphas_cumprod)
 posterior_variance = betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
+
+
+# Let's test it on our dataset
+
+IMG_SIZE = 64
+BATCH_SIZE = 128
+
+def load_transformed_dataset():
+    data_transforms = [
+        transforms.Resize((IMG_SIZE, IMG_SIZE)),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(), # Scales data into [0,1]
+        transforms.Lambda(lambda t: (t * 2) - 1) # Scale between [-1, 1]
+    ]
+    data_transform = transforms.Compose(data_transforms)
+
+    train = torchvision.datasets.StanfordCars(root=".", download=True,
+                                         transform=data_transform)
+
+    test = torchvision.datasets.StanfordCars(root=".", download=True,
+                                         transform=data_transform, split='test')
+    return torch.utils.data.ConcatDataset([train, test])
+def show_tensor_image(image):
+    reverse_transforms = transforms.Compose([
+        transforms.Lambda(lambda t: (t + 1) / 2),
+        transforms.Lambda(lambda t: t.permute(1, 2, 0)), # CHW to HWC
+        transforms.Lambda(lambda t: t * 255.),
+        transforms.Lambda(lambda t: t.numpy().astype(np.uint8)),
+        transforms.ToPILImage(),
+    ])
+
+    # Take first image of batch
+    if len(image.shape) == 4:
+        image = image[0, :, :, :]
+    plt.imshow(reverse_transforms(image))
+
+data = load_transformed_dataset()
+dataloader = DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
 # ............
 #............. working on it.
